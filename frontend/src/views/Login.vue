@@ -1,45 +1,54 @@
 <template>
-  <div class="max-w-md mx-auto mt-16 p-6">
-    <h2 class="text-2xl font-bold text-center mb-6">
-      {{ isLogin ? '登录' : '注册' }}
-    </h2>
+  <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="card max-w-md w-full">
+      <div class="text-center mb-8">
+        <h1 class="text-4xl font-display font-bold text-gradient mb-2">
+          欢迎回来
+        </h1>
+        <p class="text-gray-600">登录您的账户</p>
+      </div>
 
-    <input
-      v-model="email"
-      type="email"
-      placeholder="邮箱"
-      class="input-field mb-3"
-    />
-    <input
-      v-if="!isLogin"
-      v-model="username"
-      type="text"
-      placeholder="昵称"
-      class="input-field mb-3"
-    />
-    <input
-      v-model="password"
-      type="password"
-      placeholder="密码"
-      class="input-field mb-4"
-    />
+      <form @submit.prevent="handleLogin" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
+          <input
+            v-model="email"
+            type="email"
+            required
+            class="input-field"
+            placeholder="your@email.com"
+          />
+        </div>
 
-    <p v-if="error" class="text-red-600 text-sm mb-3">{{ error }}</p>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+          <input
+            v-model="password"
+            type="password"
+            required
+            class="input-field"
+            placeholder="至少8个字符"
+          />
+        </div>
 
-    <button
-      type="button"
-      class="btn-primary w-full"
-      :disabled="loading"
-      @click="submit"
-    >
-      {{ loading ? '请稍候...' : isLogin ? '登录' : '注册' }}
-    </button>
+        <div v-if="error" class="text-red-500 text-sm text-center">
+          {{ error }}
+        </div>
 
-    <p class="text-center mt-4 text-gray-600">
-      <button type="button" class="text-primary-600" @click="toggleMode">
-        {{ isLogin ? '去注册' : '去登录' }}
-      </button>
-    </p>
+        <button type="submit" class="btn-primary w-full" :disabled="loading">
+          {{ loading ? '登录中...' : '登录' }}
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <p class="text-gray-600">
+          还没有账户？
+          <router-link to="/register" class="text-primary-600 hover:text-primary-700 font-medium">
+            立即注册
+          </router-link>
+        </p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -52,52 +61,22 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const email = ref('')
-const username = ref('')
 const password = ref('')
-const isLogin = ref(true)
 const loading = ref(false)
 const error = ref('')
 
-const toggleMode = () => {
-  isLogin.value = !isLogin.value
-  error.value = ''
-}
-
-const submit = async () => {
-  error.value = ''
+const handleLogin = async () => {
   loading.value = true
+  error.value = ''
 
-  try {
-    if (isLogin.value) {
-      const result = await authStore.login(email.value, password.value)
-      if (result.success) {
-        router.push('/')
-      } else {
-        error.value = result.message
-      }
-    } else {
-      if (!username.value.trim()) {
-        error.value = '请填写昵称'
-        return
-      }
-      if (password.value.length < 8) {
-        error.value = '密码至少 8 位'
-        return
-      }
-      const result = await authStore.register(
-        email.value,
-        username.value.trim(),
-        password.value
-      )
-      if (result.success) {
-        alert('注册成功，请登录')
-        isLogin.value = true
-      } else {
-        error.value = result.message
-      }
-    }
-  } finally {
-    loading.value = false
+  const result = await authStore.login(email.value, password.value)
+
+  if (result.success) {
+    router.push('/')
+  } else {
+    error.value = result.message
   }
+
+  loading.value = false
 }
 </script>
