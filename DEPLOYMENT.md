@@ -100,10 +100,17 @@ curl https://你的服务.up.railway.app/health
    - **构建命令**: `npm install && npm run build`
    - **输出目录**: `dist`
 
-### 环境变量
+### 环境变量（Production，变量名必须完全一致）
+
 ```
-VITE_API_URL=https://你的服务.up.railway.app/api
+VITE_API_URL=https://baby-production-6e69.up.railway.app/api
 ```
+
+| 正确 | 错误（会导致注册 405） |
+|------|------------------------|
+| 完整 `https://xxx.up.railway.app/api` | `/api`、`api`、前端自己的 `*.pages.dev` |
+
+改完变量后必须 **Retry deployment** 重新 `npm run build`，不能只保存变量。
 
 ### 获取前端 URL
 例如：`https://baby-growth-tracker.pages.dev`
@@ -139,8 +146,12 @@ VITE_API_URL=https://你的服务.up.railway.app/api
 - 查看 Deploy Logs：若出现 `Supabase connection check failed`，说明启动自检未通过
 - 核对三个 `SUPABASE_*` 变量无多余空格、与 Supabase 控制台一致
 
+### 注册/登录 405，Network 里是 `api/auth/register`（相对路径）
+- Cloudflare 的 `VITE_API_URL` 填成了 `/api` 或前端域名 → 请求打到 Pages 静态站
+- 应改为 Railway 完整地址，并重新构建；打开控制台应看到 `[api] baseURL = https://...railway.app/api`
+
 ### 前端无法连接后端
-- `VITE_API_URL` 须为 `https://xxx.up.railway.app/api`（带 `/api`）
+- `VITE_API_URL` 须为 `https://xxx.up.railway.app/api`（带 `https://` 和 `/api`）
 - Railway 域名需已公开（Generate Domain）
 
 ### 登录失败
