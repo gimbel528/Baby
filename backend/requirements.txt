@@ -2,8 +2,8 @@ fastapi
 uvicorn
 python-dotenv
 pydantic
+pydantic-settings
 python-jose
-passlib
 python-multipart
 httpx
 apscheduler
