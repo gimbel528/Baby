@@ -24,9 +24,16 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchUser()
       return { success: true }
     } catch (error) {
+      if (!error.response) {
+        return {
+          success: false,
+          message: `无法连接后端（${api.defaults.baseURL}）。请在 Cloudflare 配置 VITE_API_URL 后重新构建部署`
+        }
+      }
+      const detail = error.response?.data?.detail
       return {
         success: false,
-        message: error.response?.data?.detail || error.message || '登录失败'
+        message: typeof detail === 'string' ? detail : JSON.stringify(detail) || '登录失败'
       }
     }
   }
@@ -36,9 +43,16 @@ export const useAuthStore = defineStore('auth', () => {
       await api.post('/auth/register', { email, username, password })
       return { success: true }
     } catch (error) {
+      if (!error.response) {
+        return {
+          success: false,
+          message: `无法连接后端（${api.defaults.baseURL}）。请在 Cloudflare 配置 VITE_API_URL 后重新构建部署`
+        }
+      }
+      const detail = error.response?.data?.detail
       return {
         success: false,
-        message: error.response?.data?.detail || error.message || '注册失败'
+        message: typeof detail === 'string' ? detail : JSON.stringify(detail) || '注册失败'
       }
     }
   }
