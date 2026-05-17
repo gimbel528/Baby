@@ -1,7 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-// 从 Supabase 后台 Settings → API 复制这两个值
-const SUPABASE_URL = 'https://hxgljdlvhnqhuujfjgpq.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_aNDSsfln80e8IeBn2UPDRQ_fEp3Ob6Z'
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.warn('缺少 VITE_SUPABASE_URL 或 VITE_SUPABASE_ANON_KEY（仅直连 Supabase 时需要）')
+}
+
+export const supabase =
+  SUPABASE_URL && SUPABASE_ANON_KEY
+    ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null

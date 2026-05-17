@@ -1,60 +1,103 @@
 <template>
-  <div style="max-width:400px;margin:50px auto;padding:20px">
-    <h2>{{ isLogin ? "登录" : "注册" }}</h2>
-    
-    <input 
-      v-model="email" 
+  <div class="max-w-md mx-auto mt-16 p-6">
+    <h2 class="text-2xl font-bold text-center mb-6">
+      {{ isLogin ? '登录' : '注册' }}
+    </h2>
+
+    <input
+      v-model="email"
+      type="email"
       placeholder="邮箱"
-      style="width:100%;margin:10px 0;padding:10px"
+      class="input-field mb-3"
     />
-    <input 
-      v-model="password" 
+    <input
+      v-if="!isLogin"
+      v-model="username"
+      type="text"
+      placeholder="昵称"
+      class="input-field mb-3"
+    />
+    <input
+      v-model="password"
       type="password"
       placeholder="密码"
-      style="width:100%;margin:10px 0;padding:10px"
+      class="input-field mb-4"
     />
 
-    <button 
+    <p v-if="error" class="text-red-600 text-sm mb-3">{{ error }}</p>
+
+    <button
+      type="button"
+      class="btn-primary w-full"
+      :disabled="loading"
       @click="submit"
-      style="width:100%;padding:10px;background:#4f46e5;color:white;border:none;border-radius:5px"
     >
-      {{ isLogin ? "登录" : "注册" }}
+      {{ loading ? '请稍候...' : isLogin ? '登录' : '注册' }}
     </button>
 
-    <p style="text-align:center;margin-top:10px">
-      <a @click="isLogin = !isLogin" style="color:#4f46e5;cursor:pointer">
-        {{ isLogin ? "去注册" : "去登录" }}
-      </a>
+    <p class="text-center mt-4 text-gray-600">
+      <button type="button" class="text-primary-600" @click="toggleMode">
+        {{ isLogin ? '去注册' : '去登录' }}
+      </button>
     </p>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { supabase } from '@/supabase'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+
+const router = useRouter()
+const authStore = useAuthStore()
 
 const email = ref('')
+const username = ref('')
 const password = ref('')
 const isLogin = ref(true)
+const loading = ref(false)
+const error = ref('')
 
-// 登录 / 注册 提交
+const toggleMode = () => {
+  isLogin.value = !isLogin.value
+  error.value = ''
+}
+
 const submit = async () => {
-  if (isLogin.value) {
-    // 登录
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value
-    })
-    if (error) alert(error.message)
-    else alert("登录成功！🎉")
-  } else {
-    // 注册
-    const { error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value
-    })
-    if (error) alert(error.message)
-    else alert("注册成功！请到邮箱验证 ✅")
+  error.value = ''
+  loading.value = true
+
+  try {
+    if (isLogin.value) {
+      const result = await authStore.login(email.value, password.value)
+      if (result.success) {
+        router.push('/')
+      } else {
+        error.value = result.message
+      }
+    } else {
+      if (!username.value.trim()) {
+        error.value = '请填写昵称'
+        return
+      }
+      if (password.value.length < 8) {
+        error.value = '密码至少 8 位'
+        return
+      }
+      const result = await authStore.register(
+        email.value,
+        username.value.trim(),
+        password.value
+      )
+      if (result.success) {
+        alert('注册成功，请登录')
+        isLogin.value = true
+      } else {
+        error.value = result.message
+      }
+    }
+  } finally {
+    loading.value = false
   }
 }
 </script>
