@@ -1,85 +1,60 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center p-4">
-    <div class="card max-w-md w-full">
-      <div class="text-center mb-8">
-        <h1 class="text-4xl font-display font-bold text-gradient mb-2">
-          欢迎回来
-        </h1>
-        <p class="text-gray-600">登录您的账户</p>
-      </div>
+  <div style="max-width:400px;margin:50px auto;padding:20px">
+    <h2>{{ isLogin ? "登录" : "注册" }}</h2>
+    
+    <input 
+      v-model="email" 
+      placeholder="邮箱"
+      style="width:100%;margin:10px 0;padding:10px"
+    />
+    <input 
+      v-model="password" 
+      type="password"
+      placeholder="密码"
+      style="width:100%;margin:10px 0;padding:10px"
+    />
 
-      <form @submit.prevent="handleLogin" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">邮箱</label>
-          <input 
-            v-model="form.email"
-            type="email"
-            required
-            class="input-field"
-            placeholder="your@email.com"
-          />
-        </div>
+    <button 
+      @click="submit"
+      style="width:100%;padding:10px;background:#4f46e5;color:white;border:none;border-radius:5px"
+    >
+      {{ isLogin ? "登录" : "注册" }}
+    </button>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">密码</label>
-          <input 
-            v-model="form.password"
-            type="password"
-            required
-            class="input-field"
-            placeholder="••••••••"
-          />
-        </div>
-
-        <div v-if="error" class="text-red-500 text-sm text-center">
-          {{ error }}
-        </div>
-
-        <button type="submit" class="btn-primary w-full" :disabled="loading">
-          {{ loading ? '登录中...' : '登录' }}
-        </button>
-      </form>
-
-      <div class="mt-6 text-center">
-        <p class="text-gray-600">
-          还没有账户？
-          <router-link to="/register" class="text-primary-600 hover:text-primary-700 font-medium">
-            立即注册
-          </router-link>
-        </p>
-      </div>
-    </div>
+    <p style="text-align:center;margin-top:10px">
+      <a @click="isLogin = !isLogin" style="color:#4f46e5;cursor:pointer">
+        {{ isLogin ? "去注册" : "去登录" }}
+      </a>
+    </p>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { supabase } from '@/supabase'
 
-const router = useRouter()
-const authStore = useAuthStore()
+const email = ref('')
+const password = ref('')
+const isLogin = ref(true)
 
-const form = ref({
-  email: '',
-  password: ''
-})
-
-const loading = ref(false)
-const error = ref('')
-
-const handleLogin = async () => {
-  loading.value = true
-  error.value = ''
-  
-  const result = await authStore.login(form.value.email, form.value.password)
-  
-  if (result.success) {
-    router.push('/')
+// 登录 / 注册 提交
+const submit = async () => {
+  if (isLogin.value) {
+    // 登录
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.value,
+      password: password.value
+    })
+    if (error) alert(error.message)
+    else alert("登录成功！🎉")
   } else {
-    error.value = result.message
+    // 注册
+    const { error } = await supabase.auth.signUp({
+      email: email.value,
+      password: password.value
+    })
+    if (error) alert(error.message)
+    else alert("注册成功！请到邮箱验证 ✅")
   }
-  
-  loading.value = false
 }
 </script>
