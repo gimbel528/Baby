@@ -79,12 +79,20 @@
           </button>
         </div>
 
-        <div v-if="countdownEvents.length === 0" class="empty-state text-center py-16">
+        <!-- 加载中 -->
+        <div v-if="isLoading" class="loading-state text-center py-16">
+          <div class="empty-icon text-6xl mb-6 animate-bounce">⏳</div>
+          <p class="text-xl text-gray-600">加载中...</p>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-else-if="countdownEvents.length === 0" class="empty-state text-center py-16">
           <div class="empty-icon text-6xl mb-6 animate-bounce">⏰</div>
           <p class="text-xl text-gray-600 mb-2">还没有倒计时事件</p>
           <p class="text-gray-500">点击上方按钮添加第一个倒计时</p>
         </div>
 
+        <!-- 事件列表 -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div 
             v-for="(event, index) in countdownEvents" 
@@ -94,11 +102,19 @@
           >
             <div class="event-header flex justify-between items-start mb-4">
               <h3 class="font-semibold text-xl">{{ event.event_name }}</h3>
-              <div 
-                class="days-badge"
-                :class="event.is_expired ? 'expired' : 'active'"
-              >
-                {{ event.is_expired ? '已过期' : `${event.days_remaining} 天` }}
+              <div class="flex gap-2 items-center">
+                <div 
+                  class="days-badge"
+                  :class="event.is_expired ? 'expired' : 'active'"
+                >
+                  {{ event.is_expired ? '已过期' : `${event.days_remaining} 天` }}
+                </div>
+                <button 
+                  @click.stop="deleteEvent(event.id)"
+                  class="delete-btn text-white bg-red-400 hover:bg-red-500 px-2 py-1 rounded-lg text-sm transition-all"
+                >
+                  删除
+                </button>
               </div>
             </div>
             <div class="event-date flex items-center gap-2 text-gray-600">
@@ -127,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/services/api'
@@ -141,15 +157,19 @@ const authStore = useAuthStore()
 const countdownEvents = ref([])
 const lettersCount = ref(0)
 const showAddEvent = ref(false)
+const isLoading = ref(false)
 
 const eventsCount = computed(() => countdownEvents.value.length)
 
 const fetchCountdownEvents = async () => {
+  isLoading.value = true
   try {
     const response = await api.get('/countdown/')
     countdownEvents.value = response.data
   } catch (error) {
     console.error('获取倒计时事件失败:', error)
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -159,6 +179,19 @@ const fetchLettersCount = async () => {
     lettersCount.value = response.data.length
   } catch (error) {
     console.error('获取信件数量失败:', error)
+  }
+}
+
+const deleteEvent = async (eventId) => {
+  if (!confirm('确定要删除这个倒计时事件吗？删除后无法恢复！')) return
+  
+  try {
+    await api.delete(`/countdown/${eventId}`)
+    alert('删除成功！')
+    await fetchCountdownEvents()
+  } catch (error) {
+    console.error('删除失败:', error)
+    alert('删除失败，请重试')
   }
 }
 
@@ -176,7 +209,6 @@ const getProgressWidth = (event) => {
 const handleEventAdded = async () => {
   showAddEvent.value = false
   await fetchCountdownEvents()
-  console.log('刷新事件成功，当前事件数:', countdownEvents.value.length)
 }
 
 const handleLogout = async () => {
@@ -185,6 +217,12 @@ const handleLogout = async () => {
 }
 
 onMounted(() => {
+  fetchCountdownEvents()
+  fetchLettersCount()
+})
+
+// 页面返回时自动刷新
+onActivated(() => {
   fetchCountdownEvents()
   fetchLettersCount()
 })
@@ -391,16 +429,13 @@ onMounted(() => {
   transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .events-card {
     padding: 24px;
   }
-  
   .quick-actions {
     padding: 24px;
   }
-  
   .floating-shape {
     display: none;
   }

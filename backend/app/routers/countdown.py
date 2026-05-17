@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.countdown import CountdownEventCreate, CountdownEventUpdate, CountdownEvent
 from app.routers.auth import get_current_user
-from app.database import get_supabase_client
+from app.database import get_supabase_client, SupabaseClient
 from datetime import datetime
 import logging
 
@@ -16,17 +16,17 @@ async def create_countdown_event(
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("countdown_events").insert({
+        inserted = await supabase.insert("countdown_events", {
             "user_id": user["sub"],
             "event_name": event_data.event_name,
             "target_date": event_data.target_date.isoformat(),
             "event_type": event_data.event_type,
             "is_active": True
-        }).execute()
+        })
         
         return {
             "message": "倒计时事件创建成功",
-            "data": response.data[0]
+            "data": inserted
         }
     except Exception as e:
         logging.error(f"创建倒计时事件失败: {str(e)}")
@@ -41,21 +41,24 @@ async def get_countdown_events(user = Depends(get_current_user)):
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("countdown_events").select("*").eq("user_id", user["sub"]).eq("is_active", True).execute()
+        events = await supabase.select("countdown_events", "*", {
+            "user_id": f"eq.{user['sub']}",
+            "is_active": "eq.true"
+        })
         
-        events = []
-        for event in response.data:
+        result = []
+        for event in events:
             target_date = datetime.fromisoformat(event["target_date"].replace("Z", "+00:00"))
             now = datetime.now(target_date.tzinfo)
             days_remaining = (target_date - now).days
             
-            events.append({
+            result.append({
                 **event,
                 "days_remaining": days_remaining,
                 "is_expired": days_remaining < 0
             })
         
-        return events
+        return result
     except Exception as e:
         logging.error(f"获取倒计时事件失败: {str(e)}")
         raise HTTPException(
@@ -72,12 +75,15 @@ async def get_countdown_event(
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("countdown_events").select("*").eq("id", event_id).eq("user_id", user["sub"]).execute()
+        events = await supabase.select("countdown_events", "*", {
+            "id": f"eq.{event_id}",
+            "user_id": f"eq.{user['sub']}"
+        })
         
-        if not response.data:
+        if not events:
             raise HTTPException(status_code=404, detail="倒计时事件不存在")
         
-        event = response.data[0]
+        event = events[0]
         target_date = datetime.fromisoformat(event["target_date"].replace("Z", "+00:00"))
         now = datetime.now(target_date.tzinfo)
         days_remaining = (target_date - now).days
@@ -87,6 +93,8 @@ async def get_countdown_event(
             "days_remaining": days_remaining,
             "is_expired": days_remaining < 0
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"获取倒计时事件失败: {str(e)}")
         raise HTTPException(
@@ -104,20 +112,22 @@ async def update_countdown_event(
     supabase = get_supabase_client()
     
     try:
-        update_data = event_data.dict(exclude_unset=True)
+        update_data = event_data.model_dump(exclude_unset=True)
         
         if "target_date" in update_data:
             update_data["target_date"] = update_data["target_date"].isoformat()
         
-        response = supabase.table("countdown_events").update(update_data).eq("id", event_id).eq("user_id", user["sub"]).execute()
+        updated = await supabase.update("countdown_events", event_id, update_data)
         
-        if not response.data:
+        if not updated:
             raise HTTPException(status_code=404, detail="倒计时事件不存在")
         
         return {
             "message": "更新成功",
-            "data": response.data[0]
+            "data": updated
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"更新倒计时事件失败: {str(e)}")
         raise HTTPException(
@@ -134,11 +144,7 @@ async def delete_countdown_event(
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("countdown_events").delete().eq("id", event_id).eq("user_id", user["sub"]).execute()
-        
-        if not response.data:
-            raise HTTPException(status_code=404, detail="倒计时事件不存在")
-        
+        await supabase.delete("countdown_events", event_id)
         return {"message": "删除成功"}
     except Exception as e:
         logging.error(f"删除倒计时事件失败: {str(e)}")

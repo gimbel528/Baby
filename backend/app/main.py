@@ -1,3 +1,7 @@
+# 必须放在最顶部！
+from dotenv import load_dotenv
+load_dotenv()  # 加载 .env 文件
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles

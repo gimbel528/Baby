@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.letter import LetterCreate, LetterUpdate
 from app.routers.auth import get_current_user
-from app.database import get_supabase_client
+from app.database import get_supabase_client, SupabaseClient
 from datetime import datetime
 import logging
 
@@ -30,11 +30,11 @@ async def create_letter(
         if letter_data.reminder_date:
             insert_data["reminder_date"] = letter_data.reminder_date.isoformat()
         
-        response = supabase.table("letters").insert(insert_data).execute()
+        inserted = await supabase.insert("letters", insert_data)
         
         return {
             "message": "信件创建成功",
-            "data": response.data[0]
+            "data": inserted
         }
     except Exception as e:
         logging.error(f"创建信件失败: {str(e)}")
@@ -49,10 +49,13 @@ async def get_letters(user = Depends(get_current_user)):
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("letters").select("*").eq("user_id", user["sub"]).order("created_at", desc=True).execute()
+        letters = await supabase.select("letters", "*", {
+            "user_id": f"eq.{user['sub']}",
+            "order": "created_at.desc"
+        })
         
-        letters = []
-        for letter in response.data:
+        result = []
+        for letter in letters:
             is_unlocked = letter["is_unlocked"]
             
             if letter.get("unlock_date"):
@@ -69,9 +72,9 @@ async def get_letters(user = Depends(get_current_user)):
             if not is_unlocked:
                 letter_data["content"] = "🔒 信件尚未解锁"
             
-            letters.append(letter_data)
+            result.append(letter_data)
         
-        return letters
+        return result
     except Exception as e:
         logging.error(f"获取信件列表失败: {str(e)}")
         raise HTTPException(
@@ -88,12 +91,15 @@ async def get_letter(
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("letters").select("*").eq("id", letter_id).eq("user_id", user["sub"]).execute()
+        letters = await supabase.select("letters", "*", {
+            "id": f"eq.{letter_id}",
+            "user_id": f"eq.{user['sub']}"
+        })
         
-        if not response.data:
+        if not letters:
             raise HTTPException(status_code=404, detail="信件不存在")
         
-        letter = response.data[0]
+        letter = letters[0]
         is_unlocked = letter["is_unlocked"]
         
         if letter.get("unlock_date"):
@@ -109,6 +115,8 @@ async def get_letter(
             **letter,
             "is_unlocked": is_unlocked
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"获取信件失败: {str(e)}")
         raise HTTPException(
@@ -126,7 +134,7 @@ async def update_letter(
     supabase = get_supabase_client()
     
     try:
-        update_data = letter_data.dict(exclude_unset=True)
+        update_data = letter_data.model_dump(exclude_unset=True)
         
         if "unlock_date" in update_data:
             update_data["unlock_date"] = update_data["unlock_date"].isoformat()
@@ -134,15 +142,17 @@ async def update_letter(
         if "reminder_date" in update_data:
             update_data["reminder_date"] = update_data["reminder_date"].isoformat()
         
-        response = supabase.table("letters").update(update_data).eq("id", letter_id).eq("user_id", user["sub"]).execute()
+        updated = await supabase.update("letters", letter_id, update_data)
         
-        if not response.data:
+        if not updated:
             raise HTTPException(status_code=404, detail="信件不存在")
         
         return {
             "message": "更新成功",
-            "data": response.data[0]
+            "data": updated
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"更新信件失败: {str(e)}")
         raise HTTPException(
@@ -159,11 +169,7 @@ async def delete_letter(
     supabase = get_supabase_client()
     
     try:
-        response = supabase.table("letters").delete().eq("id", letter_id).eq("user_id", user["sub"]).execute()
-        
-        if not response.data:
-            raise HTTPException(status_code=404, detail="信件不存在")
-        
+        await supabase.delete("letters", letter_id)
         return {"message": "删除成功"}
     except Exception as e:
         logging.error(f"删除信件失败: {str(e)}")
