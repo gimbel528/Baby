@@ -2,7 +2,7 @@ fastapi
 uvicorn
 python-dotenv
 pydantic
-pydantic-settings
+pydantic-settings==2.1.0
 python-jose
 python-multipart
 httpx
