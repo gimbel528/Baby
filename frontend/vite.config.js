@@ -13,7 +13,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'baby-production-6e69.up.railway.app',
+        target: 'https://baby-production-6e69.up.railway.app',
         changeOrigin: true
       }
     }

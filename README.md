@@ -21,12 +21,12 @@
 
 ### 后端
 - Python FastAPI
-- Supabase (PostgreSQL + Auth + Storage)
-- APScheduler (定时任务)
+- Supabase (PostgreSQL + Auth，经 REST / Auth HTTP API 访问)
 
 ### 部署
 - Cloudflare Pages (前端)
-- Cloudflare Workers (保活)
+- Railway (后端)
+- Cloudflare Workers (Supabase 保活，可选)
 - Supabase (数据库和认证)
 
 ## 🚀 快速开始
@@ -70,7 +70,12 @@ uvicorn app.main:app --reload --port 8000
 
 # 访问 API 文档
 # http://localhost:8000/docs
+
+# 检查 Supabase 连接
+# http://localhost:8000/health
 ```
+
+生产部署见 [DEPLOYMENT.md](./DEPLOYMENT.md)（Railway + Cloudflare Pages + Supabase）。
 
 ### 4. 配置前端
 
@@ -152,11 +157,9 @@ Baby/
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-SUPABASE_JWT_SECRET=your-jwt-secret
-SECRET_KEY=your-secret-key
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
+
+登录与 JWT 由 Supabase Auth 负责，后端通过 HTTP 调用 Supabase，不依赖 `python-jose` / `bcrypt`。
 
 ### Cloudflare Workers
 
