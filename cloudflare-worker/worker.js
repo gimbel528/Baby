@@ -1,18 +1,16 @@
 export default {
   async scheduled(event, env, ctx) {
-    const SUPABASE_URL = env.SUPABASE_URL
-    const SUPABASE_ANON_KEY = env.SUPABASE_ANON_KEY
+    const RAILWAY_URL = env.RAILWAY_URL
     
     try {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+      const response = await fetch(`${RAILWAY_URL}/health`, {
         method: 'GET',
         headers: {
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+          'User-Agent': 'Cloudflare-Worker-Keep-Alive'
         }
       })
       
-      console.log(`Keep-alive ping sent at ${new Date().toISOString()}`)
+      console.log(`Keep-alive ping sent to Railway at ${new Date().toISOString()}`)
       console.log(`Status: ${response.status}`)
       
       return new Response('OK', { status: 200 })
