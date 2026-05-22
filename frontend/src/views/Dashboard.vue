@@ -80,7 +80,14 @@ const modules = ref([])
 
 const coreModules = computed(() => {
   const coreNames = ['物品明细', '疫苗记录', '健康档案']
-  return modules.value.filter(m => coreNames.includes(m.name))
+  const seen = new Set()
+  return modules.value
+    .filter(m => coreNames.includes(m.name))
+    .filter(m => {
+      if (seen.has(m.name)) return false
+      seen.add(m.name)
+      return true
+    })
 })
 
 const fetchModules = async () => {
