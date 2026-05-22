@@ -166,3 +166,132 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ============================================
+-- 第二阶段：功能模块与物品清单
+-- ============================================
+
+-- 功能模块表（待产包、疫苗接种、宝宝包等）
+CREATE TABLE IF NOT EXISTS modules (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  name TEXT NOT NULL,
+  icon TEXT DEFAULT '📦',
+  description TEXT,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 物品分类表
+CREATE TABLE IF NOT EXISTS item_categories (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  module_id UUID REFERENCES modules(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 物品清单表
+CREATE TABLE IF NOT EXISTS checklist_items (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  module_id UUID REFERENCES modules(id) ON DELETE CASCADE NOT NULL,
+  category_id UUID REFERENCES item_categories(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'purchased', 'packed', 'ready')),
+  link TEXT,
+  notes TEXT,
+  quantity INTEGER DEFAULT 1,
+  sort_order INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 创建索引
+CREATE INDEX idx_modules_user_id ON modules(user_id);
+CREATE INDEX idx_modules_sort_order ON modules(sort_order);
+CREATE INDEX idx_item_categories_user_id ON item_categories(user_id);
+CREATE INDEX idx_item_categories_module_id ON item_categories(module_id);
+CREATE INDEX idx_checklist_items_user_id ON checklist_items(user_id);
+CREATE INDEX idx_checklist_items_module_id ON checklist_items(module_id);
+CREATE INDEX idx_checklist_items_category_id ON checklist_items(category_id);
+CREATE INDEX idx_checklist_items_status ON checklist_items(status);
+
+-- 启用行级安全策略 (RLS)
+ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE item_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE checklist_items ENABLE ROW LEVEL SECURITY;
+
+-- modules 表策略
+CREATE POLICY "Users can view own modules"
+  ON modules FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own modules"
+  ON modules FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own modules"
+  ON modules FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own modules"
+  ON modules FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- item_categories 表策略
+CREATE POLICY "Users can view own item categories"
+  ON item_categories FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own item categories"
+  ON item_categories FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own item categories"
+  ON item_categories FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own item categories"
+  ON item_categories FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- checklist_items 表策略
+CREATE POLICY "Users can view own checklist items"
+  ON checklist_items FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own checklist items"
+  ON checklist_items FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own checklist items"
+  ON checklist_items FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own checklist items"
+  ON checklist_items FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- 创建更新时间触发器函数
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 为 modules 表创建更新时间触发器
+CREATE TRIGGER update_modules_updated_at
+  BEFORE UPDATE ON modules
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- 为 checklist_items 表创建更新时间触发器
+CREATE TRIGGER update_checklist_items_updated_at
+  BEFORE UPDATE ON checklist_items
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

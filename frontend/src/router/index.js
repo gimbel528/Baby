@@ -19,6 +19,12 @@ const routes = [
     component: () => import('@/views/Register.vue')
   },
   {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/views/Dashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/letters',
     name: 'Letters',
     component: () => import('@/views/Letters.vue'),
@@ -34,6 +40,24 @@ const routes = [
     path: '/write',
     name: 'WriteLetter',
     component: () => import('@/views/WriteLetter.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/checklist/:id',
+    name: 'Checklist',
+    component: () => import('@/views/Checklist.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/vaccine/:id',
+    name: 'VaccineRecords',
+    component: () => import('@/views/VaccineRecords.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/health/:id',
+    name: 'HealthRecords',
+    component: () => import('@/views/HealthRecords.vue'),
     meta: { requiresAuth: true }
   }
 ]

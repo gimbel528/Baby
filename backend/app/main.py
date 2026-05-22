@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.routers import auth, countdown, letters
+from app.routers import auth, countdown, letters, checklist, health
 from app.utils.supabase_health import check_supabase_connection
 
 load_dotenv()
@@ -38,6 +38,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(countdown.router, prefix="/api/countdown", tags=["countdown"])
 app.include_router(letters.router, prefix="/api/letters", tags=["letters"])
+app.include_router(checklist.router, prefix="/api/checklist", tags=["checklist"])
+app.include_router(health.router, prefix="/api/health", tags=["health"])
 
 
 @app.get("/health")

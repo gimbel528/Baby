@@ -7,7 +7,7 @@
     </div>
     
     <div class="max-w-6xl mx-auto relative z-10">
-      <header class="flex justify-between items-center mb-12">
+      <header class="flex justify-between items-center mb-8">
         <div class="logo-wrapper">
           <h1 class="text-3xl md:text-4xl font-display font-bold text-gradient">
             宝宝成长记录
@@ -27,41 +27,27 @@
         </button>
       </header>
 
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-        <div class="lg:col-span-2">
-          <div class="countdown-wrapper">
-            <CountdownTimer :events="countdownEvents" @refresh="fetchCountdownEvents" />
-          </div>
-        </div>
-        
-        <div class="quick-actions">
-          <h2 class="text-xl font-semibold mb-6 text-gray-800">
-            <span class="inline-block mr-2">⚡</span>
-            快速操作
-          </h2>
-          <div class="space-y-4">
-            <router-link to="/write" class="quick-action primary flex items-center justify-center gap-3">
-              <span class="text-2xl">✉️</span>
-              <span>写一封信</span>
-            </router-link>
-            <router-link to="/letters" class="quick-action secondary flex items-center justify-center gap-3">
-              <span class="text-2xl">📚</span>
-              <span>查看信件</span>
-            </router-link>
-          </div>
-          
-          <div class="stats-card mt-8">
-            <div class="stat-item">
-              <div class="stat-number text-gradient text-3xl font-bold">{{ lettersCount }}</div>
-              <div class="stat-label text-gray-600">已写信件</div>
+      <div class="nav-cards mb-8">
+        <div class="nav-scroll flex gap-4">
+          <router-link to="/letters" class="nav-card">
+            <div class="nav-card-inner">
+              <div class="nav-icon">✉️</div>
+              <div class="nav-label">写一封信</div>
+              <div class="nav-desc">给宝宝的爱与期待</div>
             </div>
-            <div class="stat-divider w-px h-12 bg-gradient-to-b from-transparent via-gray-300 to-transparent"></div>
-            <div class="stat-item">
-              <div class="stat-number text-gradient text-3xl font-bold">{{ eventsCount }}</div>
-              <div class="stat-label text-gray-600">倒计时</div>
+          </router-link>
+          <router-link to="/dashboard" class="nav-card">
+            <div class="nav-card-inner">
+              <div class="nav-icon">💝</div>
+              <div class="nav-label">爱的记录</div>
+              <div class="nav-desc">物品·疫苗·健康档案</div>
             </div>
-          </div>
+          </router-link>
         </div>
+      </div>
+
+      <div class="countdown-wrapper mb-8">
+        <CountdownTimer :events="countdownEvents" @refresh="fetchCountdownEvents" />
       </div>
 
       <div class="events-card">
@@ -79,20 +65,17 @@
           </button>
         </div>
 
-        <!-- 加载中 -->
         <div v-if="isLoading" class="loading-state text-center py-16">
           <div class="empty-icon text-6xl mb-6 animate-bounce">⏳</div>
           <p class="text-xl text-gray-600">加载中...</p>
         </div>
 
-        <!-- 空状态 -->
         <div v-else-if="countdownEvents.length === 0" class="empty-state text-center py-16">
           <div class="empty-icon text-6xl mb-6 animate-bounce">⏰</div>
           <p class="text-xl text-gray-600 mb-2">还没有倒计时事件</p>
           <p class="text-gray-500">点击上方按钮添加第一个倒计时</p>
         </div>
 
-        <!-- 事件列表 -->
         <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div 
             v-for="(event, index) in countdownEvents" 
@@ -155,11 +138,8 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const countdownEvents = ref([])
-const lettersCount = ref(0)
 const showAddEvent = ref(false)
 const isLoading = ref(false)
-
-const eventsCount = computed(() => countdownEvents.value.length)
 
 const fetchCountdownEvents = async () => {
   isLoading.value = true
@@ -170,15 +150,6 @@ const fetchCountdownEvents = async () => {
     console.error('获取倒计时事件失败:', error)
   } finally {
     isLoading.value = false
-  }
-}
-
-const fetchLettersCount = async () => {
-  try {
-    const response = await api.get('/letters/')
-    lettersCount.value = response.data.length
-  } catch (error) {
-    console.error('获取信件数量失败:', error)
   }
 }
 
@@ -196,6 +167,7 @@ const deleteEvent = async (eventId) => {
 }
 
 const formatDate = (date) => {
+  if (!date) return ''
   return dayjs(date).format('YYYY年MM月DD日')
 }
 
@@ -218,13 +190,10 @@ const handleLogout = async () => {
 
 onMounted(() => {
   fetchCountdownEvents()
-  fetchLettersCount()
 })
 
-// 页面返回时自动刷新
 onActivated(() => {
   fetchCountdownEvents()
-  fetchLettersCount()
 })
 </script>
 
@@ -294,71 +263,95 @@ onActivated(() => {
   color: #4b5563;
 }
 
-.countdown-wrapper {
+.nav-cards {
   position: relative;
 }
 
-.quick-actions {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5);
+.nav-scroll {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
 }
 
-.quick-action {
-  padding: 16px 24px;
-  border-radius: 16px;
+.nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-card {
+  flex: 0 0 auto;
+  min-width: 160px;
   text-decoration: none;
-  font-weight: 600;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-card:hover {
+  transform: none;
+}
+
+.nav-card-inner {
+  background: white;
+  backdrop-filter: blur(20px);
+  border-radius: 28px;
+  padding: 24px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid transparent;
   position: relative;
   overflow: hidden;
 }
 
-.quick-action.primary {
-  background: linear-gradient(135deg, #ec4899, #f97316);
-  color: white;
-  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.3);
+.nav-card-inner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, #ec4899, #a855f7, #3b82f6);
+  border-radius: 28px 28px 0 0;
 }
 
-.quick-action.primary:hover {
-  transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 8px 30px rgba(236, 72, 153, 0.4);
+.nav-card:hover .nav-card-inner {
+  box-shadow: 0 8px 30px rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.3);
 }
 
-.quick-action.secondary {
-  background: white;
-  color: #4b5563;
-  border: 2px solid #e5e7eb;
+.nav-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
 }
 
-.quick-action.secondary:hover {
-  border-color: #ec4899;
-  color: #ec4899;
-  transform: translateY(-2px);
+.nav-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
 }
 
-.stats-card {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 6px;
-  padding-top: 24px;
-  border-top: 1px dashed #e5e7eb;
+.nav-desc {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
-.stat-item {
-  text-align: center;
-  flex: 1;
+.countdown-wrapper {
+  position: relative;
+  margin-top: 20px;
+  margin-bottom: 32px;
 }
 
 .events-card {
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(20px);
-  border-radius: 24px;
-  padding: 36px;
+  border-radius: 28px;
+  padding: 32px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
@@ -433,11 +426,14 @@ onActivated(() => {
   .events-card {
     padding: 24px;
   }
-  .quick-actions {
-    padding: 24px;
-  }
   .floating-shape {
     display: none;
+  }
+  .nav-card-inner {
+    padding: 20px 24px;
+  }
+  .nav-icon {
+    font-size: 2.4rem;
   }
 }
 </style>
