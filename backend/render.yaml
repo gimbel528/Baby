@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: baby-backend
+    env: python
+    region: oregon # 或 singapore（亚洲区域）
+    plan: free
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_prod.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12
+      - key: SUPABASE_URL
+        sync: false # 手动设置
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false # 手动设置
+      - key: SUPABASE_ANON_KEY
+        sync: false # 手动设置
+      - key: JWT_SECRET
+        sync: false # 手动设置
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: PORT
+        value: 8000
